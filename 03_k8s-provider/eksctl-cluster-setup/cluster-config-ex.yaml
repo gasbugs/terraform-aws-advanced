@@ -1,0 +1,60 @@
+apiVersion: eksctl.io/v1alpha5
+kind: ClusterConfig
+
+metadata:
+  name: web-private-cluster   # 클러스터 이름
+  region: region-code         # AWS 리전
+
+vpc:
+  cidr: "10.0.0.0/16"         # VPC CIDR 블록 설정
+  subnets:                    # 서브넷 구성
+    private:
+      region-codea: { cidr: "10.0.1.0/24" }   # 프라이빗 서브넷 A
+      region-codeb: { cidr: "10.0.2.0/24" }   # 프라이빗 서브넷 B
+    public:
+      region-codea: { cidr: "10.0.3.0/24" }   # 퍼블릭 서브넷 A
+      region-codeb: { cidr: "10.0.4.0/24" }   # 퍼블릭 서브넷 B
+  nat:
+    gateway: Single                  # NAT 게이트웨이를 단일 게이트웨이로 설정
+
+privateCluster:
+  enabled: true                      # API 서버의 프라이빗 엔드포인트만 활성화
+  disablePublicEndpoint: true         # 퍼블릭 엔드포인트 비활성화
+
+managedNodeGroups:
+  - name: eks-mng
+    instanceType: t3.medium
+    desiredCapacity: 2
+    privateNetworking: true          # 프라이빗 네트워크에서만 노드 그룹 운영
+
+iam:
+  withOIDC: true                     # OIDC와 함께 IAM 역할 활성화
+  serviceAccounts:
+  - metadata:
+      name: aws-load-balancer-controller
+      namespace: kube-system
+    wellKnownPolicies:
+      awsLoadBalancerController: true  # AWS Load Balancer Controller를 위한 IAM 역할 설정
+  - metadata:
+      name: external-dns               # 외부 DNS 관리용 서비스 계정
+      namespace: kube-system
+    wellKnownPolicies:
+      externalDNS: true                # External DNS 역할 활성화
+  - metadata:
+      name: ebs-csi-controller-sa      # EBS CSI 컨트롤러를 위한 서비스 계정
+      namespace: kube-system
+    wellKnownPolicies:
+      ebsCSIController: true           # EBS CSI 컨트롤러 역할 설정
+
+addons:
+  - name: vpc-cni                     # VPC CNI 플러그인 추가
+  - name: coredns                     # CoreDNS 추가
+  - name: kube-proxy                  # kube-proxy 추가
+  - name: aws-ebs-csi-driver          # EBS CSI 드라이버 추가
+    wellKnownPolicies:
+      ebsCSIController: true
+
+cloudWatch:
+  clusterLogging:
+    enableTypes: ["*"]                # 모든 클러스터 로그 유형 활성화
+    logRetentionInDays: 30            # 로그 보존 기간 30일로 설정

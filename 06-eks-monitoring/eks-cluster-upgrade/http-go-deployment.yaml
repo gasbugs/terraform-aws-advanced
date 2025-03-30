@@ -1,0 +1,80 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: http-go
+  labels:
+    app: http-go
+spec:
+  replicas: 3  # http-go 파드 3개 실행
+  strategy:
+    type: RollingUpdate
+    rollingUpdate:
+      maxUnavailable: 1  # 동시에 최대 1개의 파드만 다운 가능
+      maxSurge: 1  # 새로운 파드를 동시에 1개 더 생성 가능
+  selector:
+    matchLabels:
+      app: http-go
+  template:
+    metadata:
+      labels:
+        app: http-go
+    spec:
+      affinity:
+        podAntiAffinity:
+          requiredDuringSchedulingIgnoredDuringExecution:
+            - labelSelector:
+                matchLabels:
+                  app: http-go
+              topologyKey: "kubernetes.io/hostname"  # 파드가 서로 다른 노드에 배치되도록 설정
+      containers:
+      - name: http-go
+        image: gasbugs/http-go:latest
+        ports:
+        - containerPort: 8080
+        lifecycle:
+          preStop:
+            exec:
+              command: ["/bin/sh", "-c", "sleep 10"]  # 파드 종료 전 10초 대기
+        readinessProbe:  # 파드가 준비 상태일 때만 트래픽 처리
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 5
+          periodSeconds: 10
+        livenessProbe:  # 파드가 정상적으로 실행 중인지 확인
+          httpGet:
+            path: /
+            port: 8080
+          initialDelaySeconds: 15
+          periodSeconds: 20
+        resources:
+          requests:
+            cpu: "100m"
+            memory: "128Mi"
+          limits:
+            cpu: "250m"
+            memory: "256Mi"
+
+---
+apiVersion: policy/v1
+kind: PodDisruptionBudget
+metadata:
+  name: http-go-pdb
+spec:
+  minAvailable: 2  # 최소 2개의 파드는 항상 가용
+  selector:
+    matchLabels:
+      app: http-go
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: http-go
+spec:
+  type: LoadBalancer
+  selector:
+    app: http-go
+  ports:
+    - protocol: TCP
+      port: 80
+      targetPort: 8080

@@ -1,0 +1,31 @@
+apiVersion: eksctl.io/v1alpha5  # eksctl 클러스터 설정의 API 버전
+kind: ClusterConfig  # 클러스터 설정을 나타내는 리소스 종류
+
+metadata:
+  name: web-quickstart  # 클러스터 이름을 "web-quickstart"로 설정
+  region: us-east-1   # 클러스터가 배포될 AWS 리전 지정
+  version: "1.31"  # 클러스터 버전을 1.30로 설정
+
+managedNodeGroups:
+  - name: eks-mng  # 관리형 노드 그룹의 이름을 "eks-mng"으로 설정
+    instanceType: t3.medium  # 노드 인스턴스 유형을 t3.medium으로 설정
+    desiredCapacity: 2  # 원하는 노드 수를 2개로 설정
+
+iam:
+  withOIDC: true  # OIDC 프로바이더와 함께 IAM 설정 활성화
+  serviceAccounts:
+  - metadata:
+      name: aws-load-balancer-controller  # 서비스 계정의 이름을 "aws-load-balancer-controller"로 설정
+      namespace: kube-system  # "kube-system" 네임스페이스에서 서비스 계정이 동작
+    wellKnownPolicies:
+      awsLoadBalancerController: true  # AWS Load Balancer Controller 정책 적용
+
+addons:
+  - name: aws-ebs-csi-driver  # EBS CSI 드라이버 추가
+    wellKnownPolicies:  # 잘 알려진 IAM 정책 적용
+      ebsCSIController: true  # EBS CSI 컨트롤러 정책 적용
+      
+cloudWatch:
+ clusterLogging:
+   enableTypes: ["*"]  # 모든 클러스터 로그 유형을 활성화
+   logRetentionInDays: 30  # 클라우드워치 로그 보존 기간을 30일로 설정

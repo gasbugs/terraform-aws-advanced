@@ -1,0 +1,11 @@
+apiVersion: v1
+kind: Pod
+metadata:
+  name: my-pod
+  namespace: monitoring
+spec:
+  serviceAccountName: opentelemetry-collector
+  containers:
+  - name: my-pod
+    image: gasbugs/aws-cli  
+# kubectl exec -it my-pod -n monitoring -- 

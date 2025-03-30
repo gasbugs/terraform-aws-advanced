@@ -1,0 +1,59 @@
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  creationTimestamp: null
+  labels:
+    app: http-go
+  name: http-go
+spec:
+  replicas: 1
+  selector:
+    matchLabels:
+      app: http-go
+  strategy: {}
+  template:
+    metadata:
+      creationTimestamp: null
+      labels:
+        app: http-go
+    spec:
+      containers:
+      - image: gasbugs/http-go:ingress
+        name: http-go
+---
+apiVersion: v1
+kind: Service
+metadata:
+  creationTimestamp: null
+  labels:
+    app: http-go
+  name: http-go
+spec:
+  ports:
+  - port: 80
+    protocol: TCP
+    targetPort: 8080
+  selector:
+    app: http-go
+
+---
+apiVersion: networking.k8s.io/v1
+kind: Ingress
+metadata:
+  name: http-go-ingress
+  annotations:
+    alb.ingress.kubernetes.io/target-type: ip
+    alb.ingress.kubernetes.io/scheme: internet-facing
+    # alb.ingress.kubernetes.io/scheme: internal
+spec:
+  ingressClassName: alb
+  rules:
+    - http:
+        paths:
+          - pathType: Exact
+            path: /welcome/test
+            backend:
+              service:
+                name: http-go
+                port: 
+                  number: 80
